@@ -8,13 +8,10 @@ import (
 
 func init() {
 	err := migrations.Register(func(db migrations.DB) error {
-		fmt.Println("creating table worlds")
+		fmt.Println("creating table users")
 		_, err := db.Exec(`
-CREATE TABLE IF NOT EXISTS worlds (
+CREATE TABLE IF NOT EXISTS users (
 	id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-	name VARCHAR(255),
-	description TEXT,
-	image_url VARCHAR(255),
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
 	updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
@@ -22,8 +19,8 @@ CREATE TABLE IF NOT EXISTS worlds (
 
 		return err
 	}, func(db migrations.DB) error {
-		fmt.Println("dropping table worlds")
-		_, err := db.Exec(`DROP TABLE worlds`)
+		fmt.Println("dropping table users")
+		_, err := db.Exec(`DROP TABLE users`)
 		return err
 	})
 	if err != nil {

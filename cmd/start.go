@@ -15,6 +15,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+type App struct {
+	Router     *mux.Router
+	AuthRouter *mux.Router
+	DAL        *dal.DAL
+	Services   *services.Services
+	logger     *logrus.Logger
+}
+
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "start worlds api",
@@ -34,14 +42,6 @@ func init() {
 	rootCmd.AddCommand(startCmd)
 }
 
-type App struct {
-	Router     *mux.Router
-	AuthRouter *mux.Router
-	DAL        *dal.DAL
-	Services   *services.Services
-	logger     *logrus.Logger
-}
-
 func NewApp() *App {
 	config := viper.New()
 	logger := logrus.New()
@@ -51,8 +51,6 @@ func NewApp() *App {
 
 	router := mux.NewRouter()
 	authRouter := router.PathPrefix("/").Subrouter()
-	authMiddleware := handler.NewAuthMiddleware(logger)
-	authRouter.Use(authMiddleware.Authenticate)
 
 	app := &App{
 		Router:     router,
@@ -61,8 +59,9 @@ func NewApp() *App {
 		Services:   services,
 		logger:     logger,
 	}
-	app.SetupRoutes()
+
 	app.SetupMiddlewares()
+	app.SetupRoutes()
 	return app
 }
 
@@ -100,7 +99,11 @@ func (a *App) SetupRoutes() {
 }
 
 func (a *App) SetupMiddlewares() {
+	authMiddleware := handler.NewAuthMiddleware(a.logger)
+	a.AuthRouter.Use(authMiddleware.Authenticate)
+
 	a.Router.Use(mux.CORSMethodMiddleware(a.Router))
+	a.AuthRouter.Use(mux.CORSMethodMiddleware(a.AuthRouter))
 }
 
 func (a *App) Run() {
