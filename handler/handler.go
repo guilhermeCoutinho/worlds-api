@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"reflect"
 
 	"github.com/go-playground/validator"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/guilhermeCoutinho/worlds-api/services"
 	"github.com/guilhermeCoutinho/worlds-api/utils"
@@ -40,6 +42,10 @@ func NewHandlers(services *services.Services, logger logrus.FieldLogger) *Handle
 		WorldsHandler:      worldsHandler,
 		HealthcheckHandler: healthcheckHandler,
 	}
+}
+
+func UserIDFromCtx(ctx context.Context) uuid.UUID {
+	return ctx.Value("userID").(uuid.UUID)
 }
 
 func (h *Handlers) RegisterRoutes(r *mux.Router) {

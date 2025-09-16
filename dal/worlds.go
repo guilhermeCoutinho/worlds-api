@@ -2,13 +2,14 @@ package dal
 
 import (
 	"github.com/go-pg/pg"
+	"github.com/google/uuid"
 	"github.com/guilhermeCoutinho/worlds-api/models"
 )
 
 type WorldsDAL interface {
 	GetWorlds() ([]models.World, error)
-	GetWorldByID(id string) (*models.World, error)
-	GetWorldsByOwnerID(ownerID string) ([]models.World, error)
+	GetWorldByID(id uuid.UUID) (*models.World, error)
+	GetWorldsByOwnerID(ownerID uuid.UUID) ([]models.World, error)
 	CreateWorld(world *models.World) error
 	UpdateWorld(world *models.World) error
 }
@@ -27,7 +28,7 @@ func (d *WorldsDALImpl) GetWorlds() ([]models.World, error) {
 	return worlds, err
 }
 
-func (d *WorldsDALImpl) GetWorldByID(id string) (*models.World, error) {
+func (d *WorldsDALImpl) GetWorldByID(id uuid.UUID) (*models.World, error) {
 	world := &models.World{}
 	err := d.db.Model(world).Where("id = ?", id).Select()
 	if err != nil {
@@ -36,7 +37,7 @@ func (d *WorldsDALImpl) GetWorldByID(id string) (*models.World, error) {
 	return world, nil
 }
 
-func (d *WorldsDALImpl) GetWorldsByOwnerID(ownerID string) ([]models.World, error) {
+func (d *WorldsDALImpl) GetWorldsByOwnerID(ownerID uuid.UUID) ([]models.World, error) {
 	var worlds []models.World
 	err := d.db.Model(&worlds).Where("user_id = ?", ownerID).Select()
 	return worlds, err

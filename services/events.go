@@ -6,36 +6,38 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
 	"github.com/guilhermeCoutinho/worlds-api/models"
+	"github.com/guilhermeCoutinho/worlds-api/utils"
 	"github.com/sirupsen/logrus"
 )
 
 type EventPublisher interface {
-	PublishWorldCreated(ctx context.Context, world *models.World) error
-	PublishWorldUpdated(ctx context.Context, world *models.World) error
+	PublishWorldCreated(ctx context.Context, world *models.World)
+	PublishWorldUpdated(ctx context.Context, world *models.World)
 }
 
 type WorldEvent struct {
 	Type      string      `json:"type"`
-	WorldID   string      `json:"world_id"`
-	UserID    string      `json:"user_id"`
+	WorldID   uuid.UUID   `json:"world_id"`
+	UserID    uuid.UUID   `json:"user_id"`
 	Data      interface{} `json:"data"`
 	Timestamp time.Time   `json:"timestamp"`
 }
 
-type RedisEventPublisher struct {
+type RedisAsyncEventPublisher struct {
 	client *redis.Client
 	logger logrus.FieldLogger
 }
 
-func NewRedisEventPublisher(client *redis.Client, logger logrus.FieldLogger) *RedisEventPublisher {
-	return &RedisEventPublisher{
+func NewRedisEventPublisher(client *redis.Client, logger logrus.FieldLogger) *RedisAsyncEventPublisher {
+	return &RedisAsyncEventPublisher{
 		client: client,
 		logger: logger,
 	}
 }
 
-func (p *RedisEventPublisher) PublishWorldCreated(ctx context.Context, world *models.World) error {
+func (p *RedisAsyncEventPublisher) PublishWorldCreated(ctx context.Context, world *models.World) {
 	event := WorldEvent{
 		Type:      "world.created",
 		WorldID:   world.ID,
@@ -44,10 +46,10 @@ func (p *RedisEventPublisher) PublishWorldCreated(ctx context.Context, world *mo
 		Timestamp: time.Now(),
 	}
 
-	return p.publishEvent(ctx, "worlds", event)
+	p.publishEvent(ctx, "worlds", event)
 }
 
-func (p *RedisEventPublisher) PublishWorldUpdated(ctx context.Context, world *models.World) error {
+func (p *RedisAsyncEventPublisher) PublishWorldUpdated(ctx context.Context, world *models.World) {
 	event := WorldEvent{
 		Type:      "world.updated",
 		WorldID:   world.ID,
@@ -56,27 +58,29 @@ func (p *RedisEventPublisher) PublishWorldUpdated(ctx context.Context, world *mo
 		Timestamp: time.Now(),
 	}
 
-	return p.publishEvent(ctx, "worlds", event)
+	p.publishEvent(ctx, "worlds", event)
 }
 
-func (p *RedisEventPublisher) publishEvent(ctx context.Context, channel string, event WorldEvent) error {
-	eventJSON, err := json.Marshal(event)
-	if err != nil {
-		p.logger.WithError(err).Error("Failed to marshal event")
-		return err
-	}
+func (p *RedisAsyncEventPublisher) publishEvent(ctx context.Context, channel string, event WorldEvent) {
+	utils.SafeGo(ctx, func() {
+		logger := p.logger.WithFields(logrus.Fields{
+			"channel":  channel,
+			"type":     event.Type,
+			"world_id": event.WorldID,
+		})
 
-	err = p.client.Publish(ctx, channel, eventJSON).Err()
-	if err != nil {
-		p.logger.WithError(err).WithField("channel", channel).Error("Failed to publish event")
-		return err
-	}
+		logger.Debug("Publishing event")
+		eventJSON, err := json.Marshal(event)
+		if err != nil {
+			logger.WithError(err).Error("Failed to marshal event")
+			return
+		}
 
-	p.logger.WithFields(logrus.Fields{
-		"channel":  channel,
-		"type":     event.Type,
-		"world_id": event.WorldID,
-	}).Info("Event published successfully")
+		err = p.client.Publish(ctx, channel, eventJSON).Err()
+		if err != nil {
+			logger.WithError(err).Error("Failed to publish event")
+			return
+		}
+	})
 
-	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/guilhermeCoutinho/worlds-api/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -32,7 +33,13 @@ func (m *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 		}
 
 		userId := strings.TrimPrefix(token, "Bearer ")
-		r = r.WithContext(context.WithValue(r.Context(), UserIDCtxKey, userId))
+		userIdUUID, err := uuid.Parse(userId)
+		if err != nil {
+			logger.WithError(err).Error("Invalid user ID")
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+		r = r.WithContext(context.WithValue(r.Context(), UserIDCtxKey, userIdUUID))
 		next.ServeHTTP(w, r)
 	})
 }

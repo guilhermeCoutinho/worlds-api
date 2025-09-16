@@ -2,12 +2,12 @@ package services
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/guilhermeCoutinho/worlds-api/dal"
 	"github.com/guilhermeCoutinho/worlds-api/models"
-	"github.com/guilhermeCoutinho/worlds-api/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -34,21 +34,38 @@ func NewWorldsService(
 }
 
 func (s *WorldsService) GetWorlds() ([]models.World, error) {
-	return s.dal.WorldsDAL.GetWorlds()
+	worlds, err := s.dal.WorldsDAL.GetWorlds()
+	if err != nil {
+		return nil, err
+	}
+	if worlds == nil {
+		return []models.World{}, nil
+	}
+	return worlds, nil
 }
 
-func (s *WorldsService) GetWorldByID(id string) (*models.World, error) {
-	return s.dal.WorldsDAL.GetWorldByID(id)
+func (s *WorldsService) GetWorldByID(id uuid.UUID) (*models.World, error) {
+	world, err := s.dal.WorldsDAL.GetWorldByID(id)
+	if err != nil {
+		return nil, err
+	}
+	return world, nil
 }
 
-func (s *WorldsService) GetWorldsByOwnerID(ownerID string) ([]models.World, error) {
-	return s.dal.WorldsDAL.GetWorldsByOwnerID(ownerID)
+func (s *WorldsService) GetWorldsByOwnerID(ownerID uuid.UUID) ([]models.World, error) {
+	worlds, err := s.dal.WorldsDAL.GetWorldsByOwnerID(ownerID)
+	if err != nil {
+		return nil, err
+	}
+	if worlds == nil {
+		return []models.World{}, nil
+	}
+	return worlds, nil
 }
 
-func (s *WorldsService) CreateWorld(name, description, ownerID string) (*models.World, error) {
-
+func (s *WorldsService) CreateWorld(ownerID uuid.UUID, name, description string) (*models.World, error) {
 	world := &models.World{
-		ID:          uuid.New().String(),
+		ID:          uuid.New(),
 		UserID:      ownerID,
 		Name:        name,
 		Description: description,
@@ -61,18 +78,13 @@ func (s *WorldsService) CreateWorld(name, description, ownerID string) (*models.
 		return nil, err
 	}
 
-	// Publish event
-	ctx := context.Background()
-	if err := s.eventPublisher.PublishWorldCreated(ctx, world); err != nil {
-		s.logger.WithError(err).Error("Failed to publish world created event")
-		// Don't fail the operation if event publishing fails
-	}
+	s.eventPublisher.PublishWorldCreated(context.Background(), world)
 
 	return world, nil
 }
 
-func (s *WorldsService) UpdateWorld(id, name, description string) (*models.World, error) {
-	world, err := s.dal.WorldsDAL.GetWorldByID(id)
+func (s *WorldsService) UpdateWorld(userId, worldId uuid.UUID, name, description string) (*models.World, error) {
+	world, err := s.dal.WorldsDAL.GetWorldByID(worldId)
 	if err != nil {
 		return nil, err
 	}
@@ -81,19 +93,16 @@ func (s *WorldsService) UpdateWorld(id, name, description string) (*models.World
 	world.Description = description
 	world.UpdatedAt = time.Now().Format(time.RFC3339)
 
+	if world.UserID != userId {
+		return nil, errors.New("unauthorized")
+	}
+
 	err = s.dal.WorldsDAL.UpdateWorld(world)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := context.Background()
-
-	// dispatch event
-	utils.SafeGo(ctx, func() {
-		if err := s.eventPublisher.PublishWorldUpdated(ctx, world); err != nil {
-			s.logger.WithError(err).Error("Failed to publish world updated event")
-		}
-	})
+	s.eventPublisher.PublishWorldUpdated(context.Background(), world)
 
 	return world, nil
 }
