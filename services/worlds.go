@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/guilhermeCoutinho/worlds-api/dal"
 	"github.com/guilhermeCoutinho/worlds-api/models"
+	"github.com/guilhermeCoutinho/worlds-api/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -88,7 +89,7 @@ func (s *WorldsService) UpdateWorld(id, name, description string) (*models.World
 	ctx := context.Background()
 
 	// dispatch event
-	SafeGo(ctx, func() {
+	utils.SafeGo(ctx, func() {
 		if err := s.eventPublisher.PublishWorldUpdated(ctx, world); err != nil {
 			s.logger.WithError(err).Error("Failed to publish world updated event")
 		}
