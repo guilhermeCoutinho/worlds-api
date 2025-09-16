@@ -19,8 +19,11 @@ func NewWorldsHandler(services *services.Services, validator *validator.Validate
 	return &WorldsHandler{services: services, validator: validator}
 }
 
-func (h *WorldsHandler) RegisterAuthenticatedHandler(r *mux.Router) {
+func (h *WorldsHandler) RegisterHandler(r *mux.Router) {
 	r.Handle("/worlds", ErrorHandlingMiddleware(h.HandleGetWorlds)).Methods("GET")
+}
+
+func (h *WorldsHandler) RegisterAuthenticatedHandler(r *mux.Router) {
 	r.Handle("/worlds", ErrorHandlingMiddleware(h.HandleCreateWorld)).Methods("POST")
 	r.Handle("/worlds/{id}", ErrorHandlingMiddleware(h.HandleGetWorldByID)).Methods("GET")
 	r.Handle("/worlds/{id}", ErrorHandlingMiddleware(h.HandleUpdateWorld)).Methods("PUT")

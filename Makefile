@@ -18,11 +18,21 @@ restart:
 	@docker compose down
 	@docker compose up -d
 
-migrate:
-	@docker compose exec app go run migrations/main.go
-
 # Format Go code
 fmt:
 	@echo "Formatting Go code..."
 	@gofmt -w .
 	@goimports -w .
+
+
+## migrate: execute the postgres migration; use ADDRESS="" and PASSWORD="" to specify another database
+ADDRESS := localhost:5432
+PASSWORD := "postgres"
+USER := postgres
+migrate-init:
+	@echo "Running migration on database: $(ADDRESS)"
+	@cd migrations && go run *.go init -address $(ADDRESS) -pass $(PASSWORD) -user $(USER)
+
+migrate:
+	@echo "Running migration on database: $(ADDRESS)"
+	@cd migrations && go run *.go -address $(ADDRESS) -pass $(PASSWORD) -user $(USER)

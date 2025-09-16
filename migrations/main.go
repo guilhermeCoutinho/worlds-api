@@ -29,9 +29,9 @@ var (
 func main() {
 	flag.Usage = usage
 	flag.StringVar(&user, "user", "postgres", "postgres user")
-	flag.StringVar(&pass, "pass", "pass", "postgres pass")
-	flag.StringVar(&address, "address", "localhost:9000", "postgres address")
-	flag.StringVar(&database, "database", "overkill", "postgres database")
+	flag.StringVar(&pass, "pass", "postgres", "postgres pass")
+	flag.StringVar(&address, "address", "localhost:5432", "postgres address")
+	flag.StringVar(&database, "database", "worlds", "postgres database")
 	flag.Parse()
 
 	fmt.Printf("postgresql://%s:REDACTED@%s/%s\n", user, address, database)

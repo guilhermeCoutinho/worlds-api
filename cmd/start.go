@@ -49,7 +49,7 @@ func NewApp() *App {
 	config := viper.New()
 	logger := logrus.New()
 	logger.SetLevel(logrus.Level(Verbose))
-	logger.SetFormatter(&logrus.JSONFormatter{})
+	//	logger.SetFormatter(&logrus.JSONFormatter{})
 
 	db := initPg(logger)
 	redisClient := initRedis(logger)
