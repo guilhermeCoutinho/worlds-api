@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/guilhermeCoutinho/worlds-api/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,8 +23,10 @@ func NewAuthMiddleware(logger logrus.FieldLogger) *AuthMiddleware {
 
 func (m *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := utils.LoggerFromCtx(r.Context())
 		token := r.Header.Get("Authorization")
 		if token == "" {
+			logger.Error("No token provided")
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}

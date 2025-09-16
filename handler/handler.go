@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 	"reflect"
 
+	"github.com/go-playground/validator"
 	"github.com/gorilla/mux"
 	"github.com/guilhermeCoutinho/worlds-api/services"
 	"github.com/guilhermeCoutinho/worlds-api/utils"
@@ -14,43 +14,36 @@ import (
 type Handlers struct {
 	WorldsHandler      *WorldsHandler
 	HealthcheckHandler *HealthcheckHandler
+	logger             logrus.FieldLogger
 }
 
-func LoggedHandler(handler func(http.ResponseWriter, *http.Request) error) http.HandlerFunc {
+// ErrorHandlingMiddleware handles errors from handlers that return errors
+func ErrorHandlingMiddleware(next func(http.ResponseWriter, *http.Request) error) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userId := ""
-		if r.Context().Value("userID") != nil {
-			userId = r.Context().Value("userID").(string)
-		}
-
-		logger := logrus.WithFields(logrus.Fields{
-			"handler": r.URL.Path,
-			"method":  r.Method,
-			"userID":  userId,
-		})
-
-		logger.Info("Handling request")
-
-		ctx := context.WithValue(r.Context(), utils.LoggerCtxKey, logger)
-		err := handler(w, r.WithContext(ctx))
+		err := next(w, r)
 		if err != nil {
-			logger.Error(err)
+			logger := r.Context().Value(utils.LoggerCtxKey)
+			if logger != nil {
+				logger.(logrus.FieldLogger).Error(err)
+			}
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 }
 
-func NewHandlers(services *services.Services) *Handlers {
-	worldsHandler := NewWorldsHandler(services)
+func NewHandlers(services *services.Services, logger logrus.FieldLogger) *Handlers {
+	validator := validator.New()
+	worldsHandler := NewWorldsHandler(services, validator)
 	healthcheckHandler := NewHealthcheckHandler()
 	return &Handlers{
+		logger:             logger,
 		WorldsHandler:      worldsHandler,
 		HealthcheckHandler: healthcheckHandler,
 	}
 }
 
 func (h *Handlers) RegisterRoutes(r *mux.Router) {
-	logger := logrus.WithField("method", "RegisterRoutes")
+	logger := h.logger.WithField("method", "RegisterRoutes")
 	val := reflect.ValueOf(h).Elem()
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Field(i)
@@ -66,7 +59,7 @@ func (h *Handlers) RegisterRoutes(r *mux.Router) {
 }
 
 func (h *Handlers) RegisterAuthenticatedRoutes(r *mux.Router) {
-	logger := logrus.WithField("method", "RegisterAuthenticatedRoutes")
+	logger := h.logger.WithField("method", "RegisterAuthenticatedRoutes")
 	val := reflect.ValueOf(h).Elem()
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Field(i)

@@ -18,7 +18,12 @@ type WorldsService struct {
 	eventPublisher EventPublisher
 }
 
-func NewWorldsService(config *viper.Viper, dal *dal.DAL, logger logrus.FieldLogger, eventPublisher EventPublisher) *WorldsService {
+func NewWorldsService(
+	config *viper.Viper,
+	dal *dal.DAL,
+	logger logrus.FieldLogger,
+	eventPublisher EventPublisher,
+) *WorldsService {
 	return &WorldsService{
 		dal:            dal,
 		logger:         logger,
@@ -40,6 +45,7 @@ func (s *WorldsService) GetWorldsByOwnerID(ownerID string) ([]models.World, erro
 }
 
 func (s *WorldsService) CreateWorld(name, description, ownerID string) (*models.World, error) {
+
 	world := &models.World{
 		ID:          uuid.New().String(),
 		UserID:      ownerID,

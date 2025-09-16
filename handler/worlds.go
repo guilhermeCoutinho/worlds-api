@@ -4,34 +4,36 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-playground/validator"
 	"github.com/gorilla/mux"
 	"github.com/guilhermeCoutinho/worlds-api/models"
 	"github.com/guilhermeCoutinho/worlds-api/services"
 )
 
 type WorldsHandler struct {
-	services *services.Services
+	services  *services.Services
+	validator *validator.Validate
 }
 
-func NewWorldsHandler(services *services.Services) *WorldsHandler {
-	return &WorldsHandler{services: services}
+func NewWorldsHandler(services *services.Services, validator *validator.Validate) *WorldsHandler {
+	return &WorldsHandler{services: services, validator: validator}
 }
 
 func (h *WorldsHandler) RegisterAuthenticatedHandler(r *mux.Router) {
-	r.HandleFunc("/worlds", LoggedHandler(h.HandleGetWorlds)).Methods("GET")
-	r.HandleFunc("/worlds", LoggedHandler(h.HandleCreateWorld)).Methods("POST")
-	r.HandleFunc("/worlds/{id}", LoggedHandler(h.HandleGetWorldByID)).Methods("GET")
-	r.HandleFunc("/worlds/{id}", LoggedHandler(h.HandleUpdateWorld)).Methods("PUT")
+	r.Handle("/worlds", ErrorHandlingMiddleware(h.HandleGetWorlds)).Methods("GET")
+	r.Handle("/worlds", ErrorHandlingMiddleware(h.HandleCreateWorld)).Methods("POST")
+	r.Handle("/worlds/{id}", ErrorHandlingMiddleware(h.HandleGetWorldByID)).Methods("GET")
+	r.Handle("/worlds/{id}", ErrorHandlingMiddleware(h.HandleUpdateWorld)).Methods("PUT")
 }
 
 type CreateWorldRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string `json:"name" validate:"required,max=255,min=3"`
+	Description string `json:"description" validate:"required,max=1000,min=3"`
 }
 
 type UpdateWorldRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string `json:"name" validate:"required,max=255,min=3"`
+	Description string `json:"description" validate:"required,max=1000,min=3"`
 }
 
 func (h *WorldsHandler) HandleGetWorlds(w http.ResponseWriter, r *http.Request) error {
@@ -73,12 +75,12 @@ func (h *WorldsHandler) HandleGetWorldByID(w http.ResponseWriter, r *http.Reques
 func (h *WorldsHandler) HandleCreateWorld(w http.ResponseWriter, r *http.Request) error {
 	var req CreateWorldRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return nil
 	}
 
-	if req.Name == "" {
-		http.Error(w, "Name is required", http.StatusBadRequest)
+	if err := h.validator.Struct(req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return nil
 	}
 
@@ -100,18 +102,18 @@ func (h *WorldsHandler) HandleUpdateWorld(w http.ResponseWriter, r *http.Request
 
 	var req UpdateWorldRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return nil
 	}
 
-	if req.Name == "" {
-		http.Error(w, "Name is required", http.StatusBadRequest)
+	if err := h.validator.Struct(req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return nil
 	}
 
 	world, err := h.services.WorldsService.UpdateWorld(id, req.Name, req.Description)
 	if err != nil {
-		http.Error(w, "World not found or update failed", http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return nil
 	}
 

@@ -3,7 +3,7 @@ setup:
 
 run-local:
 	@PG_URL=postgres://postgres:postgres@localhost:5432/worlds?sslmode=disable \
-	REDIS_URL=redis://localhost:6379 go run main.go start
+	REDIS_URL=redis://localhost:6379 go run main.go start --verbose=5
 
 build:
 	@docker compose build

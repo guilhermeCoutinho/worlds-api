@@ -14,7 +14,7 @@ func NewHealthcheckHandler() *HealthcheckHandler {
 }
 
 func (h *HealthcheckHandler) RegisterHandler(r *mux.Router) {
-	r.HandleFunc("/healthcheck", LoggedHandler(h.HandleHealthcheck)).Methods("GET", "OPTIONS")
+	r.Handle("/healthcheck", ErrorHandlingMiddleware(h.HandleHealthcheck)).Methods("GET", "OPTIONS")
 }
 
 func (h *HealthcheckHandler) HandleHealthcheck(w http.ResponseWriter, r *http.Request) error {

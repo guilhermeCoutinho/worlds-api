@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"github.com/guilhermeCoutinho/worlds-api/dal"
 	"github.com/guilhermeCoutinho/worlds-api/handler"
 	"github.com/guilhermeCoutinho/worlds-api/services"
+	"github.com/guilhermeCoutinho/worlds-api/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -46,6 +48,9 @@ func init() {
 func NewApp() *App {
 	config := viper.New()
 	logger := logrus.New()
+	logger.SetLevel(logrus.Level(Verbose))
+	logger.SetFormatter(&logrus.JSONFormatter{})
+
 	db := initPg(logger)
 	redisClient := initRedis(logger)
 	dal := dal.NewDAL(db)
@@ -64,8 +69,8 @@ func NewApp() *App {
 		logger:     logger,
 	}
 
-	app.SetupMiddlewares()
 	app.SetupRoutes()
+	app.SetupMiddlewares()
 	return app
 }
 
@@ -127,17 +132,39 @@ func initRedis(logger *logrus.Logger) *redis.Client {
 }
 
 func (a *App) SetupRoutes() {
-	handlers := handler.NewHandlers(a.Services)
+	handlers := handler.NewHandlers(a.Services, a.logger.WithField("method", "SetupRoutes"))
 	handlers.RegisterRoutes(a.Router)
 	handlers.RegisterAuthenticatedRoutes(a.AuthRouter)
 }
 
 func (a *App) SetupMiddlewares() {
-	authMiddleware := handler.NewAuthMiddleware(a.logger)
+	a.Router.Use(a.LoggingMiddleware)
+
+	authMiddleware := handler.NewAuthMiddleware(a.logger.WithField("method", "SetupMiddlewares"))
 	a.AuthRouter.Use(authMiddleware.Authenticate)
 
 	a.Router.Use(mux.CORSMethodMiddleware(a.Router))
 	a.AuthRouter.Use(mux.CORSMethodMiddleware(a.AuthRouter))
+}
+
+func (a *App) LoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userId := ""
+		if r.Context().Value("userID") != nil {
+			userId = r.Context().Value("userID").(string)
+		}
+
+		logger := a.logger.WithFields(logrus.Fields{
+			"handler": r.URL.Path,
+			"method":  r.Method,
+			"userID":  userId,
+		})
+
+		logger.Debug("Handling request")
+
+		ctx := context.WithValue(r.Context(), utils.LoggerCtxKey, a.logger.WithField("method", "LoggingMiddleware"))
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func (a *App) Run() {
