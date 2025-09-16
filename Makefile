@@ -1,5 +1,5 @@
 run-local:
-	@go run main.go start
+	@PG_URL=postgres://postgres:postgres@localhost:5432/worlds?sslmode=disable go run main.go start
 
 build:
 	@docker compose build
@@ -16,3 +16,9 @@ restart:
 
 migrate:
 	@docker compose exec app go run migrations/main.go
+
+# Format Go code
+fmt:
+	@echo "Formatting Go code..."
+	@gofmt -w .
+	@goimports -w .

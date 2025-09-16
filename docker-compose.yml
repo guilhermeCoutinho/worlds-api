@@ -12,7 +12,7 @@ services:
       - postgres
       - redis
     environment:
-      - PG_URL=postgres://postgres:postgres@postgres:5432/worlds?sslmode=disable    
+      - PG_URL=postgres://postgres:postgres@postgres:5432/worlds?sslmode=disable
 
   redis:
     image: redis:7
