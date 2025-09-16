@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/go-pg/pg"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"github.com/guilhermeCoutinho/worlds-api/dal"
 	"github.com/guilhermeCoutinho/worlds-api/handler"
@@ -46,8 +47,11 @@ func NewApp() *App {
 	config := viper.New()
 	logger := logrus.New()
 	db := initPg(logger)
+	redisClient := initRedis(logger)
 	dal := dal.NewDAL(db)
-	services := services.NewServices(config, dal, logger)
+
+	eventPublisher := services.NewRedisEventPublisher(redisClient, logger)
+	services := services.NewServices(config, dal, logger, eventPublisher)
 
 	router := mux.NewRouter()
 	authRouter := router.PathPrefix("/").Subrouter()
@@ -90,6 +94,36 @@ func initPg(logger *logrus.Logger) *pg.DB {
 	}
 	logger.WithField("method", "initPg").Info("Connected to Postgres")
 	return db
+}
+
+func initRedis(logger *logrus.Logger) *redis.Client {
+	logger.WithField("method", "initRedis").Info("Connecting to Redis")
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		logger.WithField("method", "initRedis").Warn("REDIS_URL environment variable is not set, using default localhost:6379")
+		redisURL = "redis://localhost:6379"
+	}
+
+	opt, err := redis.ParseURL(redisURL)
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"method": "initRedis",
+			"error":  err,
+		}).Fatal("Failed to parse REDIS_URL")
+	}
+
+	client := redis.NewClient(opt)
+
+	_, err = client.Ping(client.Context()).Result()
+	if err != nil {
+		logger.WithFields(logrus.Fields{
+			"method": "initRedis",
+			"error":  err,
+		}).Fatal("Failed to connect to Redis")
+	}
+
+	logger.WithField("method", "initRedis").Info("Connected to Redis")
+	return client
 }
 
 func (a *App) SetupRoutes() {

@@ -14,8 +14,9 @@ func NewServices(
 	config *viper.Viper,
 	dal *dal.DAL,
 	logger logrus.FieldLogger,
+	eventPublisher EventPublisher,
 ) *Services {
-	worldsService := NewWorldsService(config, dal, logger)
+	worldsService := NewWorldsService(config, dal, logger, eventPublisher)
 
 	return &Services{
 		WorldsService: worldsService,

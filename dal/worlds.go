@@ -7,6 +7,10 @@ import (
 
 type WorldsDAL interface {
 	GetWorlds() ([]models.World, error)
+	GetWorldByID(id string) (*models.World, error)
+	GetWorldsByOwnerID(ownerID string) ([]models.World, error)
+	CreateWorld(world *models.World) error
+	UpdateWorld(world *models.World) error
 }
 
 type WorldsDALImpl struct {
@@ -21,4 +25,29 @@ func (d *WorldsDALImpl) GetWorlds() ([]models.World, error) {
 	var worlds []models.World
 	err := d.db.Model(&worlds).Select()
 	return worlds, err
+}
+
+func (d *WorldsDALImpl) GetWorldByID(id string) (*models.World, error) {
+	world := &models.World{}
+	err := d.db.Model(world).Where("id = ?", id).Select()
+	if err != nil {
+		return nil, err
+	}
+	return world, nil
+}
+
+func (d *WorldsDALImpl) GetWorldsByOwnerID(ownerID string) ([]models.World, error) {
+	var worlds []models.World
+	err := d.db.Model(&worlds).Where("user_id = ?", ownerID).Select()
+	return worlds, err
+}
+
+func (d *WorldsDALImpl) CreateWorld(world *models.World) error {
+	_, err := d.db.Model(world).Insert()
+	return err
+}
+
+func (d *WorldsDALImpl) UpdateWorld(world *models.World) error {
+	_, err := d.db.Model(world).Where("id = ?", world.ID).Update()
+	return err
 }
