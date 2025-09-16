@@ -24,6 +24,9 @@ fmt:
 	@gofmt -w .
 	@goimports -w .
 
+test: migrate-reset migrate
+	@go test ./test/end2end/...
+
 
 ## migrate: execute the postgres migration; use ADDRESS="" and PASSWORD="" to specify another database
 ADDRESS := localhost:5432
@@ -36,3 +39,7 @@ migrate-init:
 migrate:
 	@echo "Running migration on database: $(ADDRESS)"
 	@cd migrations && go run *.go -address $(ADDRESS) -pass $(PASSWORD) -user $(USER)
+
+migrate-reset:
+	@echo "Running migration on database: $(ADDRESS)"
+	@cd migrations && go run *.go -address $(ADDRESS) -pass $(PASSWORD) -user $(USER) reset

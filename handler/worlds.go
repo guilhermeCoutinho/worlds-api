@@ -104,7 +104,11 @@ func (h *WorldsHandler) HandleCreateWorld(w http.ResponseWriter, r *http.Request
 		return nil
 	}
 
-	userID := UserIDFromCtx(r.Context())
+	userID, err := UserIDFromCtx(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return nil
+	}
 
 	world, err := h.services.WorldsService.CreateWorld(userID, req.Name, req.Description)
 	if err != nil {
@@ -141,7 +145,11 @@ func (h *WorldsHandler) HandleUpdateWorld(w http.ResponseWriter, r *http.Request
 		return nil
 	}
 
-	userID := UserIDFromCtx(r.Context())
+	userID, err := UserIDFromCtx(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return nil
+	}
 	worldID := uuid.MustParse(params.ID)
 	world, err := h.services.WorldsService.UpdateWorld(userID, worldID, req.Name, req.Description)
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 type DAL struct {
 	db        *pg.DB
 	WorldsDAL WorldsDAL
+	UserDAL   UserDAL
 }
 
 func ConnectDB(config *viper.Viper) *pg.DB {
@@ -23,5 +24,6 @@ func NewDAL(db *pg.DB) *DAL {
 	return &DAL{
 		db:        db,
 		WorldsDAL: NewWorldsDAL(db),
+		UserDAL:   NewUserDAL(db),
 	}
 }

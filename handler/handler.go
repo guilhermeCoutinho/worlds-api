@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"reflect"
 
@@ -16,6 +17,7 @@ import (
 type Handlers struct {
 	WorldsHandler      *WorldsHandler
 	HealthcheckHandler *HealthcheckHandler
+	UserHandler        *UserHandler
 	logger             logrus.FieldLogger
 }
 
@@ -37,15 +39,20 @@ func NewHandlers(services *services.Services, logger logrus.FieldLogger) *Handle
 	validator := validator.New()
 	worldsHandler := NewWorldsHandler(services, validator)
 	healthcheckHandler := NewHealthcheckHandler()
+	userHandler := NewUserHandler(services, validator)
 	return &Handlers{
 		logger:             logger,
 		WorldsHandler:      worldsHandler,
 		HealthcheckHandler: healthcheckHandler,
+		UserHandler:        userHandler,
 	}
 }
 
-func UserIDFromCtx(ctx context.Context) uuid.UUID {
-	return ctx.Value("userID").(uuid.UUID)
+func UserIDFromCtx(ctx context.Context) (uuid.UUID, error) {
+	if ctx.Value(UserIDCtxKey) == nil {
+		return uuid.Nil, errors.New("user ID not found in context")
+	}
+	return ctx.Value(UserIDCtxKey).(uuid.UUID), nil
 }
 
 func (h *Handlers) RegisterRoutes(r *mux.Router) {
