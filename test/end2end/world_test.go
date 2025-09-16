@@ -60,7 +60,7 @@ func DoRequest[T any](t *testing.T, method, path string, body interface{}, heade
 func TestWorldsLifecycle(t *testing.T) {
 	userID := uuid.New().String()
 	_, resp := DoRequest[interface{}](t, http.MethodPost, "/user/"+userID, nil, nil)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 	worlds, resp := DoRequest[[]map[string]interface{}](t, http.MethodGet, "/worlds", nil, nil)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
@@ -88,10 +88,10 @@ func TestCannotEditWorldsFromOtherUsers(t *testing.T) {
 	userB := uuid.New().String()
 
 	_, resp := DoRequest[interface{}](t, http.MethodPost, "/user/"+userA, nil, nil)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 	_, resp = DoRequest[interface{}](t, http.MethodPost, "/user/"+userB, nil, nil)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 	newWorld := map[string]string{
 		"name":        "Test World",
@@ -111,7 +111,7 @@ func TestCannotEditWorldsFromOtherUsers(t *testing.T) {
 func TestUpdateWorld(t *testing.T) {
 	user := uuid.New().String()
 	_, resp := DoRequest[interface{}](t, http.MethodPost, "/user/"+user, nil, nil)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 	originalWorld := map[string]string{
 		"name":        "Old Name",
@@ -144,10 +144,10 @@ func TestGetWorldsByOwnerID(t *testing.T) {
 	userB := uuid.New().String()
 
 	_, resp := DoRequest[interface{}](t, http.MethodPost, "/user/"+userA, nil, nil)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 	_, resp = DoRequest[interface{}](t, http.MethodPost, "/user/"+userB, nil, nil)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 	newWorld := map[string]string{
 		"name":        "Test World",

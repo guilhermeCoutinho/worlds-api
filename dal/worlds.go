@@ -1,6 +1,8 @@
 package dal
 
 import (
+	"time"
+
 	"github.com/go-pg/pg"
 	"github.com/google/uuid"
 	"github.com/guilhermeCoutinho/worlds-api/models"
@@ -44,11 +46,14 @@ func (d *WorldsDALImpl) GetWorldsByOwnerID(ownerID uuid.UUID) ([]models.World, e
 }
 
 func (d *WorldsDALImpl) CreateWorld(world *models.World) error {
+	world.CreatedAt = time.Now()
+	world.UpdatedAt = time.Now()
 	_, err := d.db.Model(world).Insert()
 	return err
 }
 
 func (d *WorldsDALImpl) UpdateWorld(world *models.World) error {
+	world.UpdatedAt = time.Now()
 	_, err := d.db.Model(world).Where("id = ?", world.ID).Update()
 	return err
 }

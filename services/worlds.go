@@ -69,8 +69,8 @@ func (s *WorldsService) CreateWorld(ownerID uuid.UUID, name, description string)
 		UserID:      ownerID,
 		Name:        name,
 		Description: description,
-		CreatedAt:   time.Now().Format(time.RFC3339),
-		UpdatedAt:   time.Now().Format(time.RFC3339),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	err := s.dal.WorldsDAL.CreateWorld(world)
@@ -91,7 +91,7 @@ func (s *WorldsService) UpdateWorld(userId, worldId uuid.UUID, name, description
 
 	world.Name = name
 	world.Description = description
-	world.UpdatedAt = time.Now().Format(time.RFC3339)
+	world.UpdatedAt = time.Now()
 
 	if world.UserID != userId {
 		return nil, errors.New("unauthorized")

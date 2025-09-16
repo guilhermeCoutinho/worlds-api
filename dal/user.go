@@ -1,6 +1,8 @@
 package dal
 
 import (
+	"time"
+
 	"github.com/go-pg/pg"
 	"github.com/guilhermeCoutinho/worlds-api/models"
 )
@@ -18,6 +20,8 @@ func NewUserDAL(db *pg.DB) *UserDALImpl {
 }
 
 func (d *UserDALImpl) CreateUser(user *models.User) error {
+	user.CreatedAt = time.Now()
+	user.UpdatedAt = time.Now()
 	_, err := d.db.Model(user).Insert()
 	return err
 }
