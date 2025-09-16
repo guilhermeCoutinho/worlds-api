@@ -162,3 +162,36 @@ func TestGetWorldsByOwnerID(t *testing.T) {
 	require.Len(t, worlds, 1)
 	require.Equal(t, newWorldA["name"], worlds[0]["name"])
 }
+
+func TestJoinWorldAndGetCurrentWorld(t *testing.T) {
+	// Create a user
+	userID := uuid.New().String()
+	_, resp := DoRequest[interface{}](t, http.MethodPost, "/user/"+userID, nil, nil)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	// Create a world owned by the user
+	newWorld := map[string]string{
+		"name":        "Test World for Joining",
+		"description": "A world to test joining functionality",
+	}
+	authHeaders := map[string]string{"Authorization": "Bearer " + userID}
+	world, resp := DoRequest[map[string]interface{}](t, http.MethodPost, "/worlds", newWorld, authHeaders)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	require.Equal(t, "Test World for Joining", world["name"])
+
+	worldID := world["id"].(string)
+
+	// Initially, user should not be in any world
+	currentWorld, resp := DoRequest[map[string]interface{}](t, http.MethodGet, "/worlds/my-current", nil, authHeaders)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Nil(t, currentWorld["world_id"]) // Should be null/nil
+
+	// Join the world
+	_, resp = DoRequest[interface{}](t, http.MethodPost, "/worlds/"+worldID+"/join", nil, authHeaders)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	// Now check that the user is in the world
+	currentWorld, resp = DoRequest[map[string]interface{}](t, http.MethodGet, "/worlds/my-current", nil, authHeaders)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, worldID, currentWorld["world_id"])
+}

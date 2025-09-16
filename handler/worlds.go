@@ -26,8 +26,10 @@ func (h *WorldsHandler) RegisterHandler(r *mux.Router) {
 
 func (h *WorldsHandler) RegisterAuthenticatedHandler(r *mux.Router) {
 	r.Handle("/worlds", ErrorHandlingMiddleware(h.HandleCreateWorld)).Methods("POST")
+	r.Handle("/worlds/my-current", ErrorHandlingMiddleware(h.HandleGetMyCurrentWorld)).Methods("GET")
 	r.Handle("/worlds/{id}", ErrorHandlingMiddleware(h.HandleGetWorldByID)).Methods("GET")
 	r.Handle("/worlds/{id}", ErrorHandlingMiddleware(h.HandleUpdateWorld)).Methods("PUT")
+	r.Handle("/worlds/{id}/join", ErrorHandlingMiddleware(h.HandleJoinWorld)).Methods("POST")
 }
 
 type GetWorldsQueryParams struct {
@@ -160,4 +162,68 @@ func (h *WorldsHandler) HandleUpdateWorld(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	return json.NewEncoder(w).Encode(world)
+}
+
+func (h *WorldsHandler) HandleJoinWorld(w http.ResponseWriter, r *http.Request) error {
+	params := WorldIDParam{
+		ID: mux.Vars(r)["id"],
+	}
+	if err := h.validator.Struct(params); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return err
+	}
+
+	userID, err := UserIDFromCtx(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return err
+	}
+
+	worldID := uuid.MustParse(params.ID)
+	err = h.services.WorldsService.JoinWorld(r.Context(), userID, worldID)
+	if err != nil {
+		// Handle different error types
+		if err.Error() == "world not found" {
+			http.Error(w, "World not found", http.StatusNotFound)
+			return err
+		}
+		if err.Error() == "user is already in this world" {
+			http.Error(w, "User is already in this world", http.StatusConflict)
+			return err
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return err
+	}
+
+	w.WriteHeader(http.StatusOK)
+	return nil
+}
+
+func (h *WorldsHandler) HandleGetMyCurrentWorld(w http.ResponseWriter, r *http.Request) error {
+	userID, err := UserIDFromCtx(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return err
+	}
+
+	currentWorldID, err := h.services.WorldsService.GetUserCurrentWorld(r.Context(), userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return err
+	}
+
+	var response map[string]interface{}
+	if currentWorldID == uuid.Nil {
+		response = map[string]interface{}{
+			"world_id": nil,
+		}
+	} else {
+		response = map[string]interface{}{
+			"world_id": currentWorldID.String(),
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	return json.NewEncoder(w).Encode(response)
 }

@@ -53,7 +53,7 @@ func NewApp() *App {
 
 	db := initPg(logger)
 	redisClient := initRedis(logger)
-	dal := dal.NewDAL(db)
+	dal := dal.NewDAL(db, redisClient)
 
 	eventPublisher := services.NewRedisEventPublisher(redisClient, logger)
 	services := services.NewServices(config, dal, logger, eventPublisher)

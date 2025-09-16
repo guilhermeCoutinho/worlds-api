@@ -2,6 +2,7 @@ package dal
 
 import (
 	"github.com/go-pg/pg"
+	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
 )
 
@@ -20,10 +21,10 @@ func ConnectDB(config *viper.Viper) *pg.DB {
 	})
 }
 
-func NewDAL(db *pg.DB) *DAL {
+func NewDAL(db *pg.DB, redisClient *redis.Client) *DAL {
 	return &DAL{
 		db:        db,
-		WorldsDAL: NewWorldsDAL(db),
+		WorldsDAL: NewWorldsDAL(db, redisClient),
 		UserDAL:   NewUserDAL(db),
 	}
 }

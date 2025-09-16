@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -105,4 +106,30 @@ func (s *WorldsService) UpdateWorld(userId, worldId uuid.UUID, name, description
 	s.eventPublisher.PublishWorldUpdated(context.Background(), world)
 
 	return world, nil
+}
+
+func (s *WorldsService) JoinWorld(ctx context.Context, userID, worldID uuid.UUID) error {
+	world, err := s.dal.WorldsDAL.GetWorldByID(worldID)
+	if err != nil {
+		return fmt.Errorf("world not found: %w", err)
+	}
+	if world == nil {
+		return errors.New("world not found")
+	}
+
+	err = s.dal.WorldsDAL.JoinWorld(ctx, userID, worldID)
+	if err != nil {
+		return fmt.Errorf("failed to join world: %w", err)
+	}
+
+	s.logger.WithFields(logrus.Fields{
+		"user_id":  userID,
+		"world_id": worldID,
+	}).Info("User joined world")
+
+	return nil
+}
+
+func (s *WorldsService) GetUserCurrentWorld(ctx context.Context, userID uuid.UUID) (uuid.UUID, error) {
+	return s.dal.WorldsDAL.GetUserCurrentWorld(ctx, userID)
 }
