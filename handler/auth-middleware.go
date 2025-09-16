@@ -39,6 +39,8 @@ func (m *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
+
+		logger.WithField("userID", userIdUUID).Info("User authenticated")
 		r = r.WithContext(context.WithValue(r.Context(), UserIDCtxKey, userIdUUID))
 		next.ServeHTTP(w, r)
 	})

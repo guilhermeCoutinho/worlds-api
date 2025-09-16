@@ -1,4 +1,4 @@
-.PHONY: test setup run-local build up down restart fmt migrate-init migrate
+.PHONY: test setup run-local up restart migrate-init migrate migrate-reset
 
 setup:
 	@go mod download && go mod tidy
@@ -7,24 +7,12 @@ run-local:
 	@PG_URL=postgres://postgres:postgres@localhost:5432/worlds?sslmode=disable \
 	REDIS_URL=redis://localhost:6379 go run main.go start --verbose=5
 
-build:
-	@docker compose build
-
-up: build
-	@docker compose up -d
-
-down:
-	@docker compose down
+up: 
+	@docker compose up -d --build
 
 restart:
 	@docker compose down
-	@docker compose up -d
-
-# Format Go code
-fmt:
-	@echo "Formatting Go code..."
-	@gofmt -w .
-	@goimports -w .
+	@docker compose up -d --build
 
 test:
 	@echo "Recreating database for tests"
@@ -33,7 +21,6 @@ test:
 	@go test ./test/end2end/... -count=1 -v
 
 
-## migrate: execute the postgres migration; use ADDRESS="" and PASSWORD="" to specify another database
 ADDRESS := localhost:5432
 PASSWORD := "postgres"
 USER := postgres

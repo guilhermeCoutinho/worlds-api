@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/go-playground/validator"
@@ -34,9 +35,12 @@ func (h *UserHandler) HandlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	if err := h.validator.Struct(params); err != nil {
 		return err
 	}
-	err := h.services.UserService.CreateUser(&models.User{ID: uuid.MustParse(params.ID)})
+	user := &models.User{ID: uuid.MustParse(params.ID)}
+	err := h.services.UserService.CreateUser(user)
 	if err != nil {
 		return err
 	}
-	return nil
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	return json.NewEncoder(w).Encode(user)
 }

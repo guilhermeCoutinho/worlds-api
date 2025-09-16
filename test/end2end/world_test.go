@@ -107,3 +107,58 @@ func TestCannotEditWorldsFromOtherUsers(t *testing.T) {
 	_, resp = DoRequest[interface{}](t, http.MethodPut, "/worlds/"+worldAID, newWorld, authHeadersUserB)
 	require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
+
+func TestUpdateWorld(t *testing.T) {
+	user := uuid.New().String()
+	_, resp := DoRequest[interface{}](t, http.MethodPost, "/user/"+user, nil, nil)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	originalWorld := map[string]string{
+		"name":        "Old Name",
+		"description": "old description",
+	}
+	authHeaders := map[string]string{"Authorization": "Bearer " + user}
+	oldWorld, resp := DoRequest[map[string]interface{}](t, http.MethodPost, "/worlds", originalWorld, authHeaders)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	require.Equal(t, originalWorld["name"], oldWorld["name"])
+	require.Equal(t, originalWorld["description"], oldWorld["description"])
+
+	updatedWorld := map[string]string{
+		"name":        "New Name",
+		"description": "new description",
+	}
+	updatedWorldResponse, resp := DoRequest[map[string]interface{}](t, http.MethodPut, "/worlds/"+oldWorld["id"].(string), updatedWorld, authHeaders)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, updatedWorldResponse["name"], updatedWorld["name"])
+	require.Equal(t, updatedWorldResponse["description"], updatedWorld["description"])
+
+	worlds, resp := DoRequest[[]map[string]interface{}](t, http.MethodGet, "/worlds?ownerId="+user, nil, authHeaders)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Len(t, worlds, 1)
+	require.Equal(t, updatedWorldResponse["name"], worlds[0]["name"])
+	require.Equal(t, updatedWorldResponse["description"], worlds[0]["description"])
+}
+
+func TestGetWorldsByOwnerID(t *testing.T) {
+	userA := uuid.New().String()
+	userB := uuid.New().String()
+
+	_, resp := DoRequest[interface{}](t, http.MethodPost, "/user/"+userA, nil, nil)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	_, resp = DoRequest[interface{}](t, http.MethodPost, "/user/"+userB, nil, nil)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	newWorld := map[string]string{
+		"name":        "Test World",
+		"description": "from e2e test",
+	}
+	authHeadersUserA := map[string]string{"Authorization": "Bearer " + userA}
+	newWorldA, resp := DoRequest[map[string]interface{}](t, http.MethodPost, "/worlds", newWorld, authHeadersUserA)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	worlds, resp := DoRequest[[]map[string]interface{}](t, http.MethodGet, "/worlds?ownerId="+userA, nil, authHeadersUserA)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Len(t, worlds, 1)
+	require.Equal(t, newWorldA["name"], worlds[0]["name"])
+}
