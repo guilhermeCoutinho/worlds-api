@@ -1,3 +1,5 @@
+.PHONY: test setup run-local build up down restart fmt migrate-init migrate
+
 setup:
 	@go mod download && go mod tidy
 
@@ -24,8 +26,11 @@ fmt:
 	@gofmt -w .
 	@goimports -w .
 
-test: migrate-reset migrate
-	@go test ./test/end2end/...
+test:
+	@echo "Recreating database for tests"
+	@make migrate-reset > /dev/null
+	@make migrate > /dev/null
+	@go test ./test/end2end/... -count=1 -v
 
 
 ## migrate: execute the postgres migration; use ADDRESS="" and PASSWORD="" to specify another database

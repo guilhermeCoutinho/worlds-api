@@ -38,6 +38,11 @@ func DoRequest[T any](t *testing.T, method, path string, body interface{}, heade
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 
+	var out T
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return out, resp
+	}
+
 	defer func() {
 		// We close after decoding
 		if resp.Body != nil {
@@ -45,7 +50,6 @@ func DoRequest[T any](t *testing.T, method, path string, body interface{}, heade
 		}
 	}()
 
-	var out T
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil && err != io.EOF {
 		require.NoError(t, err)
 	}
@@ -60,7 +64,8 @@ func TestWorldsLifecycle(t *testing.T) {
 
 	worlds, resp := DoRequest[[]map[string]interface{}](t, http.MethodGet, "/worlds", nil, nil)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
-	require.Len(t, worlds, 0)
+
+	oldLen := len(worlds)
 
 	newWorld := map[string]string{
 		"name":        "Test World",
@@ -74,6 +79,31 @@ func TestWorldsLifecycle(t *testing.T) {
 
 	worlds, resp = DoRequest[[]map[string]interface{}](t, http.MethodGet, "/worlds", nil, nil)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
-	require.Len(t, worlds, 1)
+	require.Len(t, worlds, oldLen+1)
 	require.Equal(t, "Test World", worlds[0]["name"])
+}
+
+func TestCannotEditWorldsFromOtherUsers(t *testing.T) {
+	userA := uuid.New().String()
+	userB := uuid.New().String()
+
+	_, resp := DoRequest[interface{}](t, http.MethodPost, "/user/"+userA, nil, nil)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	_, resp = DoRequest[interface{}](t, http.MethodPost, "/user/"+userB, nil, nil)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	newWorld := map[string]string{
+		"name":        "Test World",
+		"description": "from e2e test",
+	}
+	authHeadersUserA := map[string]string{"Authorization": "Bearer " + userA}
+	worldA, resp := DoRequest[map[string]interface{}](t, http.MethodPost, "/worlds", newWorld, authHeadersUserA)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	worldAID := worldA["id"].(string)
+
+	authHeadersUserB := map[string]string{"Authorization": "Bearer " + userB}
+	_, resp = DoRequest[interface{}](t, http.MethodPut, "/worlds/"+worldAID, newWorld, authHeadersUserB)
+	require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }

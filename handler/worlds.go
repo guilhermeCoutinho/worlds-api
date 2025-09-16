@@ -40,7 +40,7 @@ func (h *WorldsHandler) HandleGetWorlds(w http.ResponseWriter, r *http.Request) 
 	}
 	if err := h.validator.Struct(params); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return nil
+		return err
 	}
 
 	var worlds []models.World
@@ -72,14 +72,14 @@ func (h *WorldsHandler) HandleGetWorldByID(w http.ResponseWriter, r *http.Reques
 	}
 	if err := h.validator.Struct(params); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return nil
+		return err
 	}
 
 	worldID := uuid.MustParse(params.ID)
 	world, err := h.services.WorldsService.GetWorldByID(worldID)
 	if err != nil {
 		http.Error(w, "World not found", http.StatusNotFound)
-		return nil
+		return err
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -96,18 +96,18 @@ func (h *WorldsHandler) HandleCreateWorld(w http.ResponseWriter, r *http.Request
 	var req CreateWorldRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return nil
+		return err
 	}
 
 	if err := h.validator.Struct(req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return nil
+		return err
 	}
 
 	userID, err := UserIDFromCtx(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return nil
+		return err
 	}
 
 	world, err := h.services.WorldsService.CreateWorld(userID, req.Name, req.Description)
@@ -131,30 +131,30 @@ func (h *WorldsHandler) HandleUpdateWorld(w http.ResponseWriter, r *http.Request
 	}
 	if err := h.validator.Struct(params); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return nil
+		return err
 	}
 
 	var req UpdateWorldRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return nil
+		return err
 	}
 
 	if err := h.validator.Struct(req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return nil
+		return err
 	}
 
 	userID, err := UserIDFromCtx(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return nil
+		return err
 	}
 	worldID := uuid.MustParse(params.ID)
 	world, err := h.services.WorldsService.UpdateWorld(userID, worldID, req.Name, req.Description)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return nil
+		return err
 	}
 
 	w.Header().Set("Content-Type", "application/json")
