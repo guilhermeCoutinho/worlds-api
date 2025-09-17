@@ -110,6 +110,8 @@ This separation improves maintainability and testing.
   1. Scale it vertically (larger instance)
   2. Or migrate this functionality to Postgres/MongoDB for more IOPS and persistence
 
+- **Atomic Operations with Lua:** We chose to use Lua scripting for the join world operation. This ensures users are never in two worlds at once and that state remains consistent under high concurrency. This allows us to remove the user from their old world and add them to the new one in a single atomic operation. Compared to using transactions with WATCH/MULTI/EXEC its faster because the entire script executes inside Redis without round-trips. Its harder to debug due to the fact that the script logs go to the redis stdout. 
+
 ### Active World Definition
 
 The term "active worlds" was not explicitly defined in the specification, so I chose to assign it a semantic meaning: **a world is considered active if `user_count > 0`**.
