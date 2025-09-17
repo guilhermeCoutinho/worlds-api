@@ -9,10 +9,8 @@ import (
 type WorldTransferJobStatus string
 
 const (
-	WorldTransferJobStatusCreated            WorldTransferJobStatus = "created"
-	WorldTransferJobStatusCompleted          WorldTransferJobStatus = "completed"
-	WorldTransferJobStatusPartiallyCompleted WorldTransferJobStatus = "partially_completed"
-	WorldTransferJobStatusFailed             WorldTransferJobStatus = "failed"
+	WorldTransferJobStatusCreated   WorldTransferJobStatus = "created"
+	WorldTransferJobStatusCompleted WorldTransferJobStatus = "completed"
 )
 
 type WorldsTransferJob struct {
