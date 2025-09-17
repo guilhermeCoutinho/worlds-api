@@ -12,9 +12,37 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type Event interface {
+	GetType() string
+	GetLogMetadata() map[string]interface{}
+}
+
+type WorldTransferRequestedEvent struct {
+	Type              string    `json:"type"`
+	WorldID           uuid.UUID `json:"world_id"`
+	UserID            uuid.UUID `json:"user_id"`
+	WorldVersion      int       `json:"world_version"`
+	TargetEnvironment string    `json:"target_environment"`
+	Timestamp         time.Time `json:"timestamp"`
+}
+
+func (e *WorldTransferRequestedEvent) GetType() string {
+	return e.Type
+}
+
+func (e *WorldTransferRequestedEvent) GetLogMetadata() map[string]interface{} {
+	return map[string]interface{}{
+		"world_id":           e.WorldID,
+		"user_id":            e.UserID,
+		"world_version":      e.WorldVersion,
+		"target_environment": e.TargetEnvironment,
+	}
+}
+
 type EventPublisher interface {
 	PublishWorldCreated(ctx context.Context, world *models.World)
 	PublishWorldUpdated(ctx context.Context, world *models.World)
+	PublishWorldTransferRequested(ctx context.Context, worldTransferRequestedEvent *WorldTransferRequestedEvent)
 }
 
 type WorldEvent struct {
@@ -23,6 +51,17 @@ type WorldEvent struct {
 	UserID    uuid.UUID   `json:"user_id"`
 	Data      interface{} `json:"data"`
 	Timestamp time.Time   `json:"timestamp"`
+}
+
+func (e *WorldEvent) GetType() string {
+	return e.Type
+}
+
+func (e *WorldEvent) GetLogMetadata() map[string]interface{} {
+	return map[string]interface{}{
+		"world_id": e.WorldID,
+		"user_id":  e.UserID,
+	}
 }
 
 type RedisAsyncEventPublisher struct {
@@ -46,7 +85,11 @@ func (p *RedisAsyncEventPublisher) PublishWorldCreated(ctx context.Context, worl
 		Timestamp: time.Now(),
 	}
 
-	p.publishEvent(ctx, "worlds", event)
+	p.publishEvent(ctx, "worlds", &event)
+}
+
+func (p *RedisAsyncEventPublisher) PublishWorldTransferRequested(ctx context.Context, worldTransferRequestedEvent *WorldTransferRequestedEvent) {
+	p.publishEvent(ctx, "worlds", worldTransferRequestedEvent)
 }
 
 func (p *RedisAsyncEventPublisher) PublishWorldUpdated(ctx context.Context, world *models.World) {
@@ -58,15 +101,15 @@ func (p *RedisAsyncEventPublisher) PublishWorldUpdated(ctx context.Context, worl
 		Timestamp: time.Now(),
 	}
 
-	p.publishEvent(ctx, "worlds", event)
+	p.publishEvent(ctx, "worlds", &event)
 }
 
-func (p *RedisAsyncEventPublisher) publishEvent(ctx context.Context, channel string, event WorldEvent) {
+func (p *RedisAsyncEventPublisher) publishEvent(ctx context.Context, channel string, event Event) {
 	utils.SafeGo(ctx, func() {
 		logger := p.logger.WithFields(logrus.Fields{
 			"channel":  channel,
-			"type":     event.Type,
-			"world_id": event.WorldID,
+			"type":     event.GetType(),
+			"metadata": event.GetLogMetadata(),
 		})
 
 		logger.Debug("Publishing event")

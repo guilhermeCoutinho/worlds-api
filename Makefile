@@ -1,4 +1,4 @@
-.PHONY: test setup run-local up restart migrate-init migrate migrate-reset
+.PHONY: test setup run-local up restart migrate-init migrate migrate-reset deps
 
 setup:
 	@go mod download && go mod tidy
@@ -6,6 +6,9 @@ setup:
 run-local:
 	@PG_URL=postgres://postgres:postgres@localhost:5432/worlds?sslmode=disable \
 	REDIS_URL=redis://localhost:6379 go run main.go start --verbose=5
+
+deps:
+	@docker compose up -d redis postgres
 
 up: 
 	@docker compose up -d --build

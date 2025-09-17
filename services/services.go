@@ -7,8 +7,9 @@ import (
 )
 
 type Services struct {
-	WorldsService *WorldsService
-	UserService   *UserService
+	WorldsService         *WorldsService
+	UserService           *UserService
+	WorldsImporterService *WorldsImporterService
 }
 
 func NewServices(
@@ -19,9 +20,11 @@ func NewServices(
 ) *Services {
 	worldsService := NewWorldsService(config, dal, logger, eventPublisher)
 	userService := NewUserService(dal)
+	worldsImporterService := NewWorldsImporterService(eventPublisher, dal)
 
 	return &Services{
-		WorldsService: worldsService,
-		UserService:   userService,
+		WorldsService:         worldsService,
+		UserService:           userService,
+		WorldsImporterService: worldsImporterService,
 	}
 }

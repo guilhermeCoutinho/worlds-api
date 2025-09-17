@@ -55,13 +55,16 @@ func (d *WorldsDALImpl) GetWorldsByOwnerID(ownerID uuid.UUID) ([]models.World, e
 func (d *WorldsDALImpl) CreateWorld(world *models.World) error {
 	world.CreatedAt = time.Now()
 	world.UpdatedAt = time.Now()
+	world.Version = 0
 	_, err := d.db.Model(world).Insert()
 	return err
 }
 
 func (d *WorldsDALImpl) UpdateWorld(world *models.World) error {
 	world.UpdatedAt = time.Now()
-	_, err := d.db.Model(world).Where("id = ?", world.ID).Update()
+	oldVersion := world.Version
+	world.Version = oldVersion + 1
+	_, err := d.db.Model(world).Where("id = ? AND version = ?", world.ID, oldVersion).Update()
 	return err
 }
 
