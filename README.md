@@ -2,6 +2,23 @@
 
 A REST API for managing virtual worlds and users. Includes persistence, event publishing, and scalable design considerations.
 
+## 📂 Project Structure
+```
+worlds-api/
+├── cmd/                # Application entrypoints (Cobra commands)
+│   └── start.go        # `start` command to run the API
+├── handler/            # HTTP handlers (request/response mapping, validation)
+├── services/           # Business logic and orchestration
+├── dal/                # Data access layer (Postgres, Redis)
+├── models/             # Core domain models and DTOs
+├── migrations/         # Database migrations (go-pg based)
+├── test/
+│   └── end2end/        # End-to-end tests
+├── Makefile            # Common tasks (migrate, test, run-local, docker up)
+├── docker-compose.yml  # Local development setup
+└── Dockerfile          # Multi-stage docker file (builder + runner)
+```
+
 ## 🚀 Setup / Run Instructions
 
 ### Prerequisites
